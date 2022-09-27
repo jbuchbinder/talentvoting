@@ -1,0 +1,7 @@
+debug: true
+port: 8888
+database:
+  name: talent
+  user: talent
+  pass: talent
+  host: tcp(127.0.0.1:3306)

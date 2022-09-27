@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Vote!</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script language="javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js" integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous"></script>
+</head>
+<body id="app">
+
+    <div class="container">
+
+    <div id="message" style="display: none;"></div>
+
+    <div class="card" id="form" style="display: none;">
+        <div class="card-header">
+            <h5 class="card-title" data-bind="text: name"></h5>
+        </div>
+        <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted" data-bind="text: description"></h6>
+            <div class="card-text">
+                <ul class="list-group list-group-flush" data-bind="foreach: optionValues">
+                    <li class="list-group-item">
+                        <input class="form-check-input" type="checkbox" data-bind="id: 'item-' + id, checkedValue: id, checked: $root.registeredVotes" />
+                        <label class="form-check-label" data-bind="text: name, attr:{ for: 'item-' + id }"></label>
+                    </li>
+                </ul>
+                <input class="btn btn-primary" type="button" value="Submit Vote" data-inline="true" data-bind="click: submit"/>
+                <div>
+                    <span data-bind="text: remainingVotes"></span> votes remaining
+                </div>
+            </div> <!-- /card-text -->
+        </div> <!-- /card-body -->
+    </div> <!-- card -->
+
+    </div> <!-- /container -->
+
+    <script language="javascript">
+
+        var maximumVotes;
+        var contestId, voterId;
+
+        var Application = function () {
+            var self = this;
+        
+            self.name = ko.observable();
+            self.description = ko.observable();
+            self.optionValues = ko.observableArray();
+            self.registeredVotes = ko.observableArray();
+            self.maximumVotes = ko.observable(maximumVotes);
+            self.remainingVotes = ko.computed(function() {
+                var remain = self.maximumVotes() - self.registeredVotes().length;
+                // If we have fewer than 0, reverse the last selection
+                if (remain < 0) {
+                    self.registeredVotes.pop();
+                    return 0;
+                }
+                return remain
+            });
+            self.canSubmit = ko.computed(function() {
+                return self.remainingVotes() >= 0;
+            });
+
+            self.change = function(el) {
+                console.log("change", el, self.registeredVotes().length);
+                if (self.registeredVotes().length > self.maximumVotes()) {
+                    console.log(" > ", self.maximumVotes());
+                    el.checked = false;
+                    return false;
+                }
+                self.remainingVotes(self.maximumVotes() - self.registeredVotes().length);
+                return true;
+            };
+
+            self.submit = function() {
+                console.log("submit!");
+                console.log(this.registeredVotes.slice());
+                $.post("api/registerVote/"+contestId+"/"+voterId, JSON.stringify(this.registeredVotes.slice()), function(data) {
+                    console.log(data);
+                });
+            };
+        }
+        var app = new Application();
+
+        ko.applyBindings(app);
+        
+        $(document).ready(function() {
+            contestId = getParameterByName("contest");
+            if (contestId == null) {
+                alert("NO ID");
+                return;
+            }
+            voterId = getParameterByName("voter");
+            if (voterId == null) {
+                alert("NO ID");
+                return;
+            }
+            $.getJSON("api/contest/"+contestId+"/"+voterId, function (data) {
+                if (data.error != null) {
+                    $('#message').html(data.error);                    
+                    $('#message').show(true);
+                    return
+                }
+
+                app.name(data.name);
+                app.description(data.description);
+                app.maximumVotes(data.maximumVotes);
+                //app.remainingVotes(data.maximumVotes);
+                $.each(data.options, function(k, v) {
+                    app.optionValues.push(v);
+                });
+                $('#form').show();
+            });
+        });
+
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+    </script>
+
+</body>
+</html>
