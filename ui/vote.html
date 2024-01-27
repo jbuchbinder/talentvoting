@@ -25,7 +25,7 @@
             <div class="card-text">
                 <ul class="list-group list-group-flush" data-bind="foreach: optionValues">
                     <li class="list-group-item">
-                        <input class="form-check-input" type="checkbox" data-bind="id: 'item-' + id, checkedValue: id, checked: $root.registeredVotes" />
+                        <input class="form-check-input" type="checkbox" data-bind="attr:{ id: 'item-' + id }, checkedValue: id, checked: $root.registeredVotes" />
                         <label class="form-check-label" data-bind="text: name, attr:{ for: 'item-' + id }"></label>
                     </li>
                 </ul>
